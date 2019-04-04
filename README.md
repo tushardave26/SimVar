@@ -15,8 +15,8 @@
 
 Required `Pyhton3.6` modules
 
-* `click`
-* `pybedtools` 
+* `click-7.0`
+* `pybedtools-0.8.0` 
 
 # Input
 
