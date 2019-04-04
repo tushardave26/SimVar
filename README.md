@@ -1,4 +1,4 @@
-# SimVar
+# SimVar [**alpha** version]
 
 **Sim**ulate **Var**iants for provided genomic coordinates
 
