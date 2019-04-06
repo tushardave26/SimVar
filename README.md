@@ -25,7 +25,7 @@ Required `Pyhton3.6` modules
 
 # Output
 
-Variant file in `TXT` format containing the following columns:
+Variant file in `CSV` format containing the following columns:
 
 * `CHR` - chromosome name
 * `START_POS` - Start position
