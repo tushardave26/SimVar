@@ -26,21 +26,21 @@ def log(verbose):
 def main(bed_file, ref_file, output_file):
     """Simple program that generate the universe of variants for given genomic location."""
 
-    click.echo("Welcome to SimVar World!!")
-    click.echo("Bed file is ==> {0}".format(bed_file))
-    click.echo("Ref genome file is ==> {0}".format(ref_file))
-    click.echo("Output file is ==> {0}".format(output_file))
-
     # Convert the given BED file to FASTA file using pybedtools
-    fasta_data = bed_to_fastq(bed_file, ref_file)
+    fasta_data = bed_to_fasta(bed_file, ref_file)
 
     # Generate text file with all the possible variants
-    parse_fastq(fasta_data, output_file)
+    variants = parse_fasta(fasta_data)
 
+    # generate variants
+    all_variants = generate_variants(variants)
 
-def bed_to_fastq(bed_file, ref_file):
+    # print the variants to the file
+    print_variants(all_variants, output_file)
+
+def bed_to_fasta(bed_file, ref_file):
     """
-    Covert the given BED file to a FASTQ file
+    Covert the given data in BED format to a FASTA format
 
     Args:
         bed_file (path): a BED file containing all the genomic regions
@@ -64,26 +64,79 @@ def bed_to_fastq(bed_file, ref_file):
 
     return fa_data
 
-def generate_variants(variants):
+def parse_fasta(fasta_data):
     """
-    Generate possible variants
+    Parse a given FASTA file and generate possible variants
 
     Args:
-        variants (dict): a dictionary of a variant containing variant information
+        fasta_data (str): FASTA data as string
 
     Returns:
-        variants_info_list (list): a list of possible variants for a given position
+        variants (list): a list of variants
+    """
+
+    # placeholder to store variants
+    variants = list()
+
+    # split the fasta data based on new line character
+    fa_data = fasta_data.strip().split('\n')
+
+    # loop through header and sequence at the same time
+    for header, sequence in zip(fa_data[0::2], fa_data[1::2]):
+
+        # get genomic region information from header
+        chrom, pos = header.split(':')
+
+        # remove the '>' from the chromosome
+        chrom = chrom.replace('>', '')
+
+        # get start and end pos of a genomic region
+        start_pos, end_pos = pos.split("-")
+        start_pos = int(start_pos)
+        end_pos = int(end_pos)
+
+        # list to hold genomic positions
+        pos_list = list(range(start_pos, end_pos, 1))
+        seq_list = list(sequence)
+
+        for p, s in zip(pos_list, seq_list):
+
+            # place holder dict to store the variant information
+            variant = dict()
+
+            # add chromosome in the variants dict
+            variant['chr'] = chrom
+            variant['start'] = p
+            variant['end'] = p
+            variant['ref'] = s
+            variant['alt'] = MUTATION_UNIVERSE[s]
+
+            # append to a variants list
+            variants.append(variant)
+
+    return variants
+
+def generate_variants(variants):
+    """
+    Generate possible variants from a given variants list
+
+    Args:
+        variants (list): a list of a variants containing variant information
+
+    Returns:
+        var_info_list (list): a list of possible variants for a given position
     """
 
     # a list to hold variants information
-    var_info_list = list()
+    all_variants = list()
 
     # create a list of variants
-    for alt_allele in variants['alt']:
-        var_info_list.append([variants['chr'], str(variants['start']), str(variants['end']),
-                              variants['ref'], alt_allele])
+    for variant in variants:
+        for alt_allele in variant['alt']:
+            all_variants.append([variant['chr'], str(variant['start']), str(variant['end']), variant['ref'],
+                                 alt_allele])
 
-    return var_info_list
+    return all_variants
 
 def print_variants(variants, output_file):
     """
@@ -111,57 +164,6 @@ def print_variants(variants, output_file):
             with open(output_file, 'a') as ofh:
                 variant_info = ','.join(variant)
                 ofh.write(variant_info + "\n")
-
-
-def parse_fastq(fasta_data, output_file):
-    """
-    Parse a given FASTQ file and generate possible variants
-
-    Args:
-        fasta_data (str): FASTA data as string
-        output_file (path): a path to an output variant file
-
-    Returns:
-        a variant file with all the possible variants
-    """
-
-    # split the fasta data based on new line character
-    fa_data = fasta_data.strip().split('\n')
-
-    # loop through header and sequence at the same time
-    for header, sequence in zip(fa_data[0::2], fa_data[1::2]):
-
-        # get genomic region information from header
-        chr, pos = header.split(':')
-
-        # remove the '>' from the chromosome
-        chr = chr.replace('>', '')
-
-        # get start and end pos of a genomic region
-        start_pos, end_pos = pos.split("-")
-        start_pos = int(start_pos)
-        end_pos = int(end_pos)
-
-        # list to hold genomic positions
-        pos_list = range(start_pos, end_pos, 1)
-        seq_list = list(sequence)
-
-        for p, s in zip(pos_list, seq_list):
-            # place holder dict to store the variant information
-            variants = dict()
-
-            # add chromosome in the variants dict
-            variants['chr'] = chr
-            variants['start'] = p
-            variants['end'] = p
-            variants['ref'] = s
-            variants['alt'] = MUTATION_UNIVERSE[s]
-
-            # generate variants
-            variants = generate_variants(variants)
-
-            # print the variants to the file
-            print_variants(variants, output_file)
 
 if __name__ == '__main__':
     main()
