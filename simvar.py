@@ -1,7 +1,8 @@
 #!/usr/bin/env python3.6
 
 import click
-import pybedtools
+import pysam
+import sys
 from pathlib import Path
 
 MUTATION_UNIVERSE = {
@@ -19,151 +20,57 @@ def log(verbose):
               type=click.Path(exists=True, readable=True, resolve_path=True))
 @click.option('-r', '--ref', 'ref_file', required=True, help='Reference genome file in FASTA format',
               type=click.Path(exists=True, readable=True, resolve_path=True))
-@click.option('-o', '--out', 'output_file', required=True, help='an ouptput file name',
+@click.option('-i', '--ref-idx', 'ref_idx_file', required=True, help='Index file for reference genome',
+              type=click.Path(exists=True, readable=True, resolve_path=True))
+@click.option('-o', '--out', 'output_file', required=False, default=sys.stdout, help='an ouptput file name',
               type=click.Path(exists=False, readable=True, resolve_path=True))
 
 @click.command()
-def main(bed_file, ref_file, output_file):
+def main(bed_file, ref_file, ref_idx_file, output_file):
     """Simple program that generate the universe of variants for given genomic location."""
 
-    # Convert the given BED file to FASTA file using pybedtools
-    fasta_data = bed_to_fasta(bed_file, ref_file)
+    # create pysam object to read FASTA file
+    fasta_file = pysam.FastaFile(ref_file, ref_idx_file)
 
-    # Generate text file with all the possible variants
-    variants = parse_fasta(fasta_data)
+    # Extract the fasta sequence for a given region and process it
+    with open(bed_file, "r") as bed:
 
-    # generate variants
-    all_variants = generate_variants(variants)
+        # iterate over the BED file
+        for region in bed:
 
-    # print the variants to the file
-    print_variants(all_variants, output_file)
+            # extract the required information from BED file
+            chrom, start, end, gene = region.strip().split('\t')
 
-def bed_to_fasta(bed_file, ref_file):
-    """
-    Covert the given data in BED format to a FASTA format
+            # convert start and end positions to int
+            start = int(start)
+            end = int(end)
 
-    Args:
-        bed_file (path): a BED file containing all the genomic regions
-        ref_file (path): a reference genome file in FASTA format
+            # fetch the sequence for given genomic region
+            try:
+                fetch_seq = fasta_file.fetch(reference = chrom, start = start, end = end)
+            except KeyError as e:
+                print(str(e))
+                continue
 
-    Returns:
-        str: FASTA data as string
-    """
+            # create the Path file object
+            output_file_obj = Path(output_file)
 
-    # Create BED file object
-    bed_data = pybedtools.BedTool(fn=bed_file)
+            # if the output file exists, remove it and create it again to avoid file existence issue
+            if output_file_obj.is_file():
+                output_file_obj.unlink()
 
-    # Create FASTA file object
-    ref_fa_data = pybedtools.example_filename(fn=ref_file)
-
-    # Convert the BED to FASTA format
-    fasta_data = bed_data.sequence(fi=ref_fa_data)
-
-    # Read the converted FASTA data
-    fa_data = (open(fasta_data.seqfn).read())
-
-    return fa_data
-
-def parse_fasta(fasta_data):
-    """
-    Parse a given FASTA file and generate possible variants
-
-    Args:
-        fasta_data (str): FASTA data as string
-
-    Returns:
-        variants (list): a list of variants
-    """
-
-    # placeholder to store variants
-    variants = list()
-
-    # split the fasta data based on new line character
-    fa_data = fasta_data.strip().split('\n')
-
-    # loop through header and sequence at the same time
-    for header, sequence in zip(fa_data[0::2], fa_data[1::2]):
-
-        # get genomic region information from header
-        chrom, pos = header.split(':')
-
-        # remove the '>' from the chromosome
-        chrom = chrom.replace('>', '')
-
-        # get start and end pos of a genomic region
-        start_pos, end_pos = pos.split("-")
-        start_pos = int(start_pos)
-        end_pos = int(end_pos)
-
-        # list to hold genomic positions
-        pos_list = list(range(start_pos, end_pos, 1))
-        seq_list = list(sequence)
-
-        for p, s in zip(pos_list, seq_list):
-
-            # place holder dict to store the variant information
-            variant = dict()
-
-            # add chromosome in the variants dict
-            variant['chr'] = chrom
-            variant['start'] = p
-            variant['end'] = p
-            variant['ref'] = s
-            variant['alt'] = MUTATION_UNIVERSE[s]
-
-            # append to a variants list
-            variants.append(variant)
-
-    return variants
-
-def generate_variants(variants):
-    """
-    Generate possible variants from a given variants list
-
-    Args:
-        variants (list): a list of a variants containing variant information
-
-    Returns:
-        var_info_list (list): a list of possible variants for a given position
-    """
-
-    # a list to hold variants information
-    all_variants = list()
-
-    # create a list of variants
-    for variant in variants:
-        for alt_allele in variant['alt']:
-            all_variants.append([variant['chr'], str(variant['start']), str(variant['end']), variant['ref'],
-                                 alt_allele])
-
-    return all_variants
-
-def print_variants(variants, output_file):
-    """
-    Print variants to a file
-
-    Args:
-        variants (list): a list of possible variants for a given position
-        output_file (path): a path to an output variant file
-    """
-
-    # create the Path file object
-    output_file_obj = Path(output_file)
-
-    # loop over the variants and print them to a file
-    for variant in variants:
-
-        # check the existence of the output file
-        if not output_file_obj.is_file():
+            # header for the output file
             header = ','.join(["chr", "start", "end", "ref", "alt"])
+
+            # open the output file to write the variants
             with open(output_file, 'w') as ofh:
-                variant_info = ','.join(variant)
                 ofh.write(header + "\n")
-                ofh.write(variant_info + "\n")
-        else:
-            with open(output_file, 'a') as ofh:
-                variant_info = ','.join(variant)
-                ofh.write(variant_info + "\n")
+
+                # iterate through region and sequence to generate possible variants
+                for index, base in enumerate(fetch_seq):
+
+                    for alt_allele in MUTATION_UNIVERSE[base]:
+                        ofh.write(",".join([chrom, str(start + index), str(start + index), base, alt_allele]) + "\n")
 
 if __name__ == '__main__':
     main()
