@@ -43,7 +43,7 @@ def main(bed_file, ref_file, ref_idx_file, output_file):
     # header for the output file
     header = ','.join(["chr", "start", "end", "ref", "alt"])
 
-    # open the output file to write the variants
+    # open the output file to write the header
     with open(output_file, 'w') as ofh:
         ofh.write(header + "\n")
 
