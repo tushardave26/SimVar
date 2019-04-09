@@ -47,32 +47,30 @@ def main(bed_file, ref_file, ref_idx_file, output_file):
     with open(output_file, 'w') as ofh:
         ofh.write(header + "\n")
 
-    # Extract the fasta sequence for a given region and process it
-    with open(bed_file, "r") as bed:
+        # Extract the fasta sequence for a given region and process it
+        with open(bed_file, "r") as bed:
 
-        # iterate over the BED file
-        for region in bed:
+            # iterate over the BED file
+            for region in bed:
 
-            # extract the required information from BED file
-            chrom, start, end, gene = region.strip().split('\t')
+                # extract the required information from BED file
+                chrom, start, end, gene = region.strip().split('\t')
 
-            # convert start and end positions to int
-            start = int(start)
-            end = int(end)
+                # convert start and end positions to int
+                start = int(start)
+                end = int(end)
 
-            # fetch the sequence for given genomic region
-            try:
-                fetch_seq = fasta_file.fetch(reference = chrom, start = start, end = end)
-            except KeyError as e:
-                print(str(e))
-                continue
-
-            # open the output file to write the variants
-            with open(output_file, 'a') as ofh:
+                # fetch the sequence for given genomic region
+                try:
+                    fetch_seq = fasta_file.fetch(reference = chrom, start = start, end = end)
+                except KeyError as e:
+                    print(str(e))
+                    continue
 
                 # iterate through region and sequence to generate possible variants
                 for index, base in enumerate(fetch_seq):
 
+                    # iterate throght all possible alt alleles
                     for alt_allele in MUTATION_UNIVERSE[base]:
                         ofh.write(",".join([chrom, str(start + index), str(start + index), base, alt_allele]) + "\n")
 
