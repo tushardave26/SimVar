@@ -33,6 +33,20 @@ def main(bed_file, ref_file, ref_idx_file, output_file):
     # create pysam object to read FASTA file
     fasta_file = pysam.FastaFile(ref_file, ref_idx_file)
 
+    # create the Path file object
+    output_file_obj = Path(output_file)
+
+    # if the output file exists, remove it and create it again to avoid file existence issue
+    if output_file_obj.is_file():
+        output_file_obj.unlink()
+
+    # header for the output file
+    header = ','.join(["chr", "start", "end", "ref", "alt"])
+
+    # open the output file to write the variants
+    with open(output_file, 'w') as ofh:
+        ofh.write(header + "\n")
+
     # Extract the fasta sequence for a given region and process it
     with open(bed_file, "r") as bed:
 
@@ -53,19 +67,8 @@ def main(bed_file, ref_file, ref_idx_file, output_file):
                 print(str(e))
                 continue
 
-            # create the Path file object
-            output_file_obj = Path(output_file)
-
-            # if the output file exists, remove it and create it again to avoid file existence issue
-            if output_file_obj.is_file():
-                output_file_obj.unlink()
-
-            # header for the output file
-            header = ','.join(["chr", "start", "end", "ref", "alt"])
-
             # open the output file to write the variants
-            with open(output_file, 'w') as ofh:
-                ofh.write(header + "\n")
+            with open(output_file, 'a') as ofh:
 
                 # iterate through region and sequence to generate possible variants
                 for index, base in enumerate(fetch_seq):
