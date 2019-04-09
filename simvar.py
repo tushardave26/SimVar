@@ -22,7 +22,8 @@ def log(verbose):
               type=click.Path(exists=True, readable=True, resolve_path=True))
 @click.option('-i', '--ref-idx', 'ref_idx_file', required=True, help='Index file for reference genome',
               type=click.Path(exists=True, readable=True, resolve_path=True))
-@click.option('-o', '--out', 'output_file', required=False, default=sys.stdout, help='an ouptput file name',
+@click.option('-o', '--out', 'output_file', required=False, default=sys.stdout, help='an ouptput file name [default: '
+                                                                                     'STDOUT]',
               type=click.Path(exists=False, readable=True, resolve_path=True))
 
 @click.command()
