@@ -8,7 +8,7 @@ setup(
     py_modules=['simvar.py'],
     install_requires=[
         "click==7.0",
-        "pybedtools==0.8.0",
+        "pysam==0.15.2",
     ],
     entry_points='''
         [console_scripts]
