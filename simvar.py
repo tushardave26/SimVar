@@ -14,10 +14,6 @@ MUTATION_UNIVERSE = {
     'C': ['T', 'A', 'G'],
 }
 
-@click.option('-v', '--verbose', count=True)
-def log(verbose):
-    click.echo('Verbosity: %s' % verbose)
-
 @click.option('-b', '--bed', 'bed_file', required=True, help='BED file containing the genomic location',
               type=click.Path(exists=True, readable=True, resolve_path=True))
 @click.option('-r', '--ref', 'ref_file', required=True, help='Reference genome file in FASTA format',
