@@ -3,6 +3,8 @@
 import click
 import pysam
 import sys
+import logging
+import re
 from pathlib import Path
 
 MUTATION_UNIVERSE = {
@@ -30,25 +32,48 @@ def log(verbose):
 def main(bed_file, ref_file, ref_idx_file, output_file):
     """Simple program that generate the universe of variants for given genomic location."""
 
+    # get the logger to log the progress of the program
+    logger = configure_logging()
+
+    logger.info(msg="Generate pysam FASTA file object - Start")
+
     # create pysam object to read FASTA file
     fasta_file = pysam.FastaFile(ref_file, ref_idx_file)
+
+    logger.info(msg="Generate pysam FASTA file object - Complete")
+
+    logger.info(msg="Check the output file existence - Start")
 
     # create the Path file object
     output_file_obj = Path(output_file)
 
     # if the output file exists, remove it and create it again to avoid file existence issue
     if output_file_obj.is_file():
+
+        logger.info(msg="Provided output file exists, removing the output file - Start")
+
         output_file_obj.unlink()
+
+        logger.info(msg="Removal of the output file - Complete")
+
+    logger.info(msg="Check the output file existence - Complete")
 
     # header for the output file
     header = ','.join(["chr", "start", "end", "ref", "alt"])
 
+    logger.info(msg="Open the output file to write the variants..")
+
     # open the output file to write the header
     with open(output_file, 'w') as ofh:
+
+        logger.info(msg="Print the header information in the output file..")
+
         ofh.write(header + "\n")
 
         # Extract the fasta sequence for a given region and process it
         with open(bed_file, "r") as bed:
+
+            logger.info(msg="Reading and processing of genomic regions - Start")
 
             # iterate over the BED file
             for region in bed:
@@ -64,7 +89,14 @@ def main(bed_file, ref_file, ref_idx_file, output_file):
                 try:
                     fetch_seq = fasta_file.fetch(reference = chrom, start = start, end = end)
                 except KeyError as e:
-                    print(str(e))
+
+                    pattern = re.compile('\'(.+)\'')
+
+                    e = pattern.search(str(e)).group()
+
+                    logger.warning(msg=f'Genomic region {e} not found in reference genome')
+                    logger.info(msg=f'Skipping the region {e}')
+
                     continue
 
                 # iterate through region and sequence to generate possible variants
@@ -73,6 +105,21 @@ def main(bed_file, ref_file, ref_idx_file, output_file):
                     # iterate throght all possible alt alleles
                     for alt_allele in MUTATION_UNIVERSE[base]:
                         ofh.write(",".join([chrom, str(start + index), str(start + index), base, alt_allele]) + "\n")
+
+            logger.info(msg="Reading and processing of genomic regions - Complete")
+
+            logger.info(msg="Procee Complete!!!")
+
+def configure_logging():
+
+    # Configure the logger
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',
+                        level=logging.INFO)
+
+    # Create a custom logger
+    logger = logging.getLogger("SimVar")
+
+    return logger
 
 if __name__ == '__main__':
     main()
