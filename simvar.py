@@ -90,8 +90,10 @@ def main(bed_file, ref_file, ref_idx_file, output_file):
                     fetch_seq = fasta_file.fetch(reference = chrom, start = start, end = end)
                 except KeyError as e:
 
+                    # regexp to match a pattern in the error message
                     pattern = re.compile('\'(.+)\'')
 
+                    # convert the `KeyError` message to an informative message
                     e = pattern.search(str(e)).group()
 
                     logger.warning(msg=f'Genomic region {e} not found in reference genome')
