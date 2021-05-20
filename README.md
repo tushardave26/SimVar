@@ -51,4 +51,4 @@ Options:
 ```
 # License
 
-Copyright &copy; 2019 Tushar Dave
+Copyright &copy; 2019-2021 Tushar Dave
