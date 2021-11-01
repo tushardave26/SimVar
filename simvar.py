@@ -83,7 +83,7 @@ def main(bed_file, ref_file, ref_idx_file, output_file):
 
                 # fetch the sequence for given genomic region
                 try:
-                    fetch_seq = fasta_file.fetch(reference = chrom, start = start, end = end)
+                    fetch_seq = fasta_file.fetch(reference = chrom, start = start - 1, end = end)
                 except KeyError as e:
 
                     # regexp to match a pattern in the error message
