@@ -96,6 +96,10 @@ def main(bed_file, ref_file, ref_idx_file, output_file):
                     logger.info(msg=f'Skipping the region {e}')
 
                     continue
+                except ValueError as e:
+                    logger.warning(msg=f'Something is wrong with input - {e}')
+                    logger.info(msg=f'Skipping the region {e}')
+                    continue
 
                 # iterate through region and sequence to generate possible variants
                 for index, base in enumerate(fetch_seq):
